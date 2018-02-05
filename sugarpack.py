@@ -23,7 +23,6 @@ bs = ([[' ', 'a', 'b', 'c', ' '],
 
 
 def refresh(bs):
-
     row0 = ' {0} ┃ {1}   {2}   {3} ┃ {4}\n━━━╋━━━┳━━━┳━━━┫\n'.format(*bs[0])
     row1 = ' {0} ┃ {1} ┃ {2} ┃ {3} ┃ {4}\n   ┣━━━╋━━━╋━━━┫\n'.format(*bs[1])
     row2 = ' {0} ┃ {1} ┃ {2} ┃ {3} ┃ {4}\n   ┣━━━╋━━━╋━━━┫\n'.format(*bs[2])
@@ -34,59 +33,76 @@ def refresh(bs):
     return grid
 
 
-def render(grid):
+def render(grid, player):
     subprocess.call('clear')
-    print(grid)
-    print('Player {0}\'s turn,'.format(active_player + 1))
+    sys.stdout.write(grid)
+    sys.stdout.write('Player {0}\'s turn,'.format(player + 1))
 
 
-def main(grid, player):
-    # while (not game_over):
-    render(grid)
-    main_phase(player)
+def main(bs, grid, player):
+    while (not game_over):
+        render(grid, player)
+        grid = main_phase(bs, player)
+        player = (player + 1) % 2
 
 
-def main_phase(player):
+def main_phase(bs, player):
 
     player_chars = player1 if player == 0 else player2
 
-    # if (player == 1):
     while True:
-        piece_to_move = input('Select a piece to move (legal: {0} {1} {2}): '.format(*player_chars))
-        if any(piece_to_move in i for i in player_chars):
-            break
+        try:
+            piece_to_move = input('\nSelect a piece to move (legal: {0} {1} {2}): '.format(*player_chars))
+            if any(piece_to_move in i for i in player_chars):
+                break
+        except KeyboardInterrupt:
+            sys.exit("\nexiting...")
         
-    move_piece(player, piece_to_move)
-    player = (player + 1) % 2
+    return move_piece(bs, player, piece_to_move)
 
 
-def move_piece(player, piece):
+def move_piece(bs, player, piece):
 
     for i, val in enumerate(bs):
+        for j, k in enumerate(val):
+            if k == rarrow or k == darrow:
+                bs[i][j] = ' '
+
+    for i, val in enumerate(bs):
+        
+        # finding the piece to move
         try:
             row = val.index(piece)
             col = i
             break
         except ValueError:
             pass
-    
-    # coords for the piece to move
-    print(col, row)
+        
+    jump = 1
+    player_chars = player1 if player == 1 else player2
     
     if (player == 0):
         tmp = piece
         bs[col][row] = darrow
-        bs[col+1][row] = tmp
+
+        for i in player_chars:
+            if bs[col+jump][row] == i:
+                jump += 1
+
+        bs[col+jump][row] = tmp
 
     else:
         tmp = piece
         bs[col][row] = rarrow
-        bs[col][row+1] = tmp
+        for i in player_chars:
+            if bs[col][row+jump] == i:
+                jump += 1
+
+        bs[col][row+jump] = tmp
 
     newgrid = refresh(bs)
-    render(newgrid)
+    return newgrid
 
 
 grid = refresh(bs)
-main(grid, active_player)
-
+main(bs, grid, active_player)
