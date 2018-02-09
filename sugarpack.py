@@ -1,8 +1,8 @@
-import numpy as np
 import subprocess
 import random
 import sys
-import datetime
+from datetime import datetime
+from time import sleep
 
 # boxchars: ╋ ━┃┣ ┫┳ ┻ ┛🡺🡻
 
@@ -14,7 +14,6 @@ darrow = '🡻'
 rarrow = '🡺'
 
 goes_first = random.randint(0,1)
-g_game_over = False
 
 # Boardstate
 bs = ([[' ', 'a', 'b', 'c', ' '],
@@ -36,7 +35,7 @@ def refresh(bs):
 
 
 def render(grid, player):
-    # subprocess.call('clear')
+    subprocess.call('clear')
     sys.stdout.write(grid)
     sys.stdout.write('Player {0}\'s turn,'.format(player + 1))
 
@@ -44,13 +43,10 @@ def render(grid, player):
 def main(bs, grid, player):
     while True:
         render(grid, player)
-        print(len(g_p1_finished), len(g_p2_finished))        
-        grid = main_phase(bs, player)
         if (len(g_p1_finished) == 3 or len(g_p2_finished) == 3):
             break
-            print(g_game_over)
-        else:
-            player = (player + 1) % 2
+        grid = main_phase(bs, player)
+        player = (player + 1) % 2
     
     sys.exit('\n Player {} won!'.format(str(player + 1)))
 
@@ -60,6 +56,11 @@ def main_phase(bs, player):
     legal_moves = find_legal_moves(bs, player)
 
     while True:
+        if not legal_moves:
+            print('No legal moves')
+            sleep(3)
+            return move_piece(bs, player, False)
+
         try:
             piece_to_move = input('\nSelect a piece to move (legal: {0}): '.format(' '.join(legal_moves)))
             if piece_to_move == '':
@@ -89,37 +90,28 @@ def find_legal_moves(bs, player):
                         legal_moves.remove(char)
         
         # pieces that have finished
-        lastrow = bs[-1]
-        for i in lastrow[1:-1]:
-            if i != ' ':
-                legal_moves.remove(i)
-                if i not in g_p1_finished:
-                    g_p1_finished.append(i)
+        legal_moves = list(set(legal_moves) - set(g_p1_finished))
 
     else:
-        # similar to above but inverted
         for p in range(len(g_player2)):
-            for i in range(len(bs)-3):
-                char = g_player2[p]
-                if (any(char in j for j in bs[i])):
-                    onestep = bs[p+1][i+1]
-                    twostep = bs[p+1][i+2]
-                    if (onestep in g_player1 and twostep in g_player1):
-                        legal_moves.remove(char)
+            char = g_player2[p]
+            index = bs[p+1].index(char)
+            if index < 2:
+                onestep = bs[p+1][index+1]
+                twostep = bs[p+1][index+2]
+                if (onestep in g_player1 and twostep in g_player1):
+                    legal_moves.remove(char)
 
-        # goodbye scalability
-        lastcol = list([bs[1][-1], bs[2][-1], bs[3][-1]])
-        for i in lastcol:
-            if i != ' ':
-                legal_moves.remove(i)
-                if i not in g_p2_finished:
-                    g_p2_finished.append(i)
+        legal_moves = list(set(legal_moves) - set(g_p2_finished))
 
-    print(g_p1_finished, g_p2_finished) 
+    legal_moves.sort()
     return legal_moves
 
 
 def move_piece(bs, player, piece):
+    if not piece:
+        newgrid = refresh(bs)
+        return newgrid
 
     for i, val in enumerate(bs):
         for j, k in enumerate(val):
@@ -148,6 +140,8 @@ def move_piece(bs, player, piece):
                 jump += 1
 
         bs[col+jump][row] = tmp
+        if col+jump > 3:
+            g_p1_finished.append(tmp)
 
     else:
         tmp = piece
@@ -157,6 +151,8 @@ def move_piece(bs, player, piece):
                 jump += 1
 
         bs[col][row+jump] = tmp
+        if row+jump > 3:
+            g_p2_finished.append(tmp)
 
     newgrid = refresh(bs)
     return newgrid
