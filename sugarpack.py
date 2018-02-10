@@ -3,12 +3,13 @@ import random
 import sys
 from datetime import datetime
 from time import sleep
+import copy
 
 # boxchars: ╋ ━┃┣ ┫┳ ┻ ┛🡺🡻
 
 g_player1 = ['a', 'b', 'c']
-g_p1_finished = []
 g_player2 = ['1', '2', '3']
+g_p1_finished = []
 g_p2_finished = []
 darrow = '🡻'
 rarrow = '🡺'
@@ -45,30 +46,52 @@ def main(bs, grid, player):
         render(grid, player)
         if (len(g_p1_finished) == 3 or len(g_p2_finished) == 3):
             break
-        grid = main_phase(bs, player)
+        bs = main_phase(bs, player, g_p1_finished, g_p2_finished)
+        grid = refresh(bs)
         player = (player + 1) % 2
     
-    sys.exit('\n Player {} won!'.format(str(player + 1)))
+    sys.exit('\n\n Player {} won!\n'.format(str(player + 1)))
 
 
-def main_phase(bs, player):
-
+def main_phase(bs, player, p1_finished, p2_finished):
     legal_moves = find_legal_moves(bs, player)
 
-    while True:
-        if not legal_moves:
-            print('No legal moves')
-            sleep(3)
-            return move_piece(bs, player, False)
+    if not legal_moves:
+                print('\nNo legal moves, passing turn...')
+                sleep(3)
+                return move_piece(bs, player, False)
 
-        try:
-            piece_to_move = input('\nSelect a piece to move (legal: {0}): '.format(' '.join(legal_moves)))
-            if piece_to_move == '':
-                continue
-            if (piece_to_move in legal_moves):
-                break
-        except KeyboardInterrupt:
-            sys.exit("\nexiting...")
+    if player == 0:
+        # copy our data by value so the calculations won't mess up the actual game state
+        dummy_bs = copy.deepcopy(bs)
+        p1_tmp = list(p1_finished)
+        p2_tmp = list(p2_finished)
+        p = copy.deepcopy(player)
+        
+        potential_moves = []
+        t1 = datetime.now()
+
+        for i in legal_moves:
+            value = calc(dummy_bs, player, p1_tmp, p2_tmp)
+            potential_moves.append((i, value))
+
+        move = max(potential_moves, key=lambda item:item[1])    
+        t2 = datetime.now()
+        total = t2 - t1
+        sys.stdout.write('\nSelected to move ' + move[0] + ', with value ' + str(move[1]) + ', in ' + str(total))
+
+        return move[0]
+        
+    else:   
+        while True:
+            try:
+                piece_to_move = input('\nSelect a piece to move (legal: {0}): '.format(' '.join(legal_moves)))
+                if piece_to_move == '':
+                    continue
+                if (piece_to_move in legal_moves):
+                    break
+            except KeyboardInterrupt:
+                sys.exit("\nexiting...")
         
     return move_piece(bs, player, piece_to_move)
 
@@ -110,8 +133,7 @@ def find_legal_moves(bs, player):
 
 def move_piece(bs, player, piece):
     if not piece:
-        newgrid = refresh(bs)
-        return newgrid
+        return bs
 
     for i, val in enumerate(bs):
         for j, k in enumerate(val):
@@ -119,7 +141,6 @@ def move_piece(bs, player, piece):
                 bs[i][j] = ' '
 
     for i, val in enumerate(bs):
-        
         # finding the piece to move
         try:
             row = val.index(piece)
@@ -154,8 +175,17 @@ def move_piece(bs, player, piece):
         if row+jump > 3:
             g_p2_finished.append(tmp)
 
-    newgrid = refresh(bs)
-    return newgrid
+    return bs
+
+
+def calc(bs, player, p1, p2):
+
+    legal_moves = list(set(g_player1) - set(p1)) if player == 0 else list(set(g_player2) - set(p2))
+
+    if len(legal_moves) == 1:
+        return legal_moves[0]
+
+    return 0
 
 
 grid = refresh(bs)
