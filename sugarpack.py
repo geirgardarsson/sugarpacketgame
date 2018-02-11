@@ -36,9 +36,9 @@ def refresh(bs):
 
 
 def render(grid, player):
-    # subprocess.call('clear')
+    subprocess.call('clear')
     sys.stdout.write(grid)
-    sys.stdout.write('Player {0}\'s turn,'.format(player + 1))
+    # sys.stdout.write('Player {0}\'s turn'.format(player + 1))
 
 
 def main(bs, grid, player):
@@ -63,6 +63,7 @@ def main_phase(bs, player, p1_finished, p2_finished):
 
     if player == 0:
         
+        # To avoid the first calculations, we just pick c
         if bs[0][3] == 'c':
             return move_piece(bs, player, 'c', p1_finished, p2_finished)
 
@@ -82,7 +83,7 @@ def main_phase(bs, player, p1_finished, p2_finished):
         # move = max(potential_moves, key=lambda item:item[1])    
         t2 = datetime.now()
         total = t2 - t1
-        sys.stdout.write('\nSelected to move ' + str(piece) + ', in ' + str(total) + '\n\n')
+        # sys.stdout.write('\nSelected to move ' + str(piece) + ', in ' + str(total) + '\n\n')
 
         return move_piece(bs, player, piece, p1_finished, p2_finished)
         
@@ -185,8 +186,7 @@ def move_piece(bs, player, piece, p1_finished, p2_finished):
 def calc_main(bs, player, p1, p2):
 
     legal_moves = list(set(g_player1) - set(p1)) if player == 0 else list(set(g_player2) - set(p2))
-
-    print('\n\n', legal_moves, '\n\n')
+    legal_moves.sort()
 
     potential_moves = []
 
