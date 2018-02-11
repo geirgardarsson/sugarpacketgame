@@ -36,7 +36,7 @@ def refresh(bs):
 
 
 def render(grid, player):
-    subprocess.call('clear')
+    # subprocess.call('clear')
     sys.stdout.write(grid)
     sys.stdout.write('Player {0}\'s turn,'.format(player + 1))
 
@@ -59,28 +59,30 @@ def main_phase(bs, player, p1_finished, p2_finished):
     if not legal_moves:
                 print('\nNo legal moves, passing turn...')
                 sleep(3)
-                return move_piece(bs, player, False)
+                return move_piece(bs, player, False, p1_finished, p2_finished)
 
     if player == 0:
+        
+        if len(legal_moves) == 1:
+            return move_piece(bs, player, legal_moves[0], p1_finished, p2_finished)        
+
+        t1 = datetime.now()
+
         # copy our data by value so the calculations won't mess up the actual game state
         dummy_bs = copy.deepcopy(bs)
         p1_tmp = list(p1_finished)
         p2_tmp = list(p2_finished)
         p = copy.deepcopy(player)
-        
-        potential_moves = []
-        t1 = datetime.now()
 
-        for i in legal_moves:
-            value = calc(dummy_bs, player, p1_tmp, p2_tmp)
-            potential_moves.append((i, value))
+        piece = calc_main(dummy_bs, player, p1_tmp, p2_tmp)
+        print('piece', piece)
 
-        move = max(potential_moves, key=lambda item:item[1])    
+        # move = max(potential_moves, key=lambda item:item[1])    
         t2 = datetime.now()
         total = t2 - t1
-        sys.stdout.write('\nSelected to move ' + move[0] + ', with value ' + str(move[1]) + ', in ' + str(total))
+        sys.stdout.write('\nSelected to move ' + str(piece) + ', in ' + str(total))
 
-        return move[0]
+        return move_piece(bs, player, piece, p1_finished, p2_finished)
         
     else:   
         while True:
@@ -93,7 +95,7 @@ def main_phase(bs, player, p1_finished, p2_finished):
             except KeyboardInterrupt:
                 sys.exit("\nexiting...")
         
-    return move_piece(bs, player, piece_to_move)
+    return move_piece(bs, player, piece_to_move, p1_finished, p2_finished)
 
 
 def find_legal_moves(bs, player):
@@ -131,7 +133,7 @@ def find_legal_moves(bs, player):
     return legal_moves
 
 
-def move_piece(bs, player, piece):
+def move_piece(bs, player, piece, p1_finished, p2_finished):
     if not piece:
         return bs
 
@@ -162,7 +164,7 @@ def move_piece(bs, player, piece):
 
         bs[col+jump][row] = tmp
         if col+jump > 3:
-            g_p1_finished.append(tmp)
+            p1_finished.append(tmp)
 
     else:
         tmp = piece
@@ -173,19 +175,59 @@ def move_piece(bs, player, piece):
 
         bs[col][row+jump] = tmp
         if row+jump > 3:
-            g_p2_finished.append(tmp)
+            p2_finished.append(tmp)
 
     return bs
 
 
-def calc(bs, player, p1, p2):
+def calc_main(bs, player, p1, p2):
 
     legal_moves = list(set(g_player1) - set(p1)) if player == 0 else list(set(g_player2) - set(p2))
 
-    if len(legal_moves) == 1:
-        return legal_moves[0]
+    print('\n\n', legal_moves, '\n\n')
 
-    return 0
+    potential_moves = []
+
+    for i in legal_moves:
+        tmp_bs = copy.deepcopy(bs)
+        tmp_player = copy.deepcopy(player)
+        tmp_p1 = list(p1)
+        tmp_p2 = list(p2)
+
+        value = calc(tmp_bs, tmp_player, i, tmp_p1, tmp_p2)
+
+        potential_moves.append((i, value))
+
+    print(potential_moves)
+    move = max(potential_moves, key=lambda item:item[1])
+
+    return move[0]
+
+
+def calc(bs, player, piece, p1, p2):
+
+    tmp_bs = move_piece(bs, player, piece, p1, p2)
+    
+    if len(p1) == 3:
+        return 1
+
+    if len(p2) == 3:
+        return -1
+
+    tmp_player = copy.deepcopy(player)
+    tmp_player = (tmp_player + 1) % 2      
+
+    legal_moves = list(set(g_player1) - set(p1)) if tmp_player == 0 else list(set(g_player2) - set(p2))
+    value = 0
+
+    for i in legal_moves:
+        tmp_bs = copy.deepcopy(bs)
+        tmp_p1 = list(p1)
+        tmp_p2 = list(p2)
+        
+        value += calc(tmp_bs, tmp_player, i, tmp_p1, tmp_p2)
+
+    return value
 
 
 grid = refresh(bs)
