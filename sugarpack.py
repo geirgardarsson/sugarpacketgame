@@ -83,7 +83,7 @@ def main_phase(bs, player, p1_finished, p2_finished):
         # move = max(potential_moves, key=lambda item:item[1])    
         t2 = datetime.now()
         total = t2 - t1
-        # sys.stdout.write('\nSelected to move ' + str(piece) + ', in ' + str(total) + '\n\n')
+        sys.stdout.write('\nSelected to move ' + str(piece) + ', in ' + str(total) + '\n\n')
 
         return move_piece(bs, player, piece, p1_finished, p2_finished)
         
