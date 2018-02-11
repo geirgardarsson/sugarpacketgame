@@ -63,6 +63,9 @@ def main_phase(bs, player, p1_finished, p2_finished):
 
     if player == 0:
         
+        if bs[0][3] == 'c':
+            return move_piece(bs, player, 'c', p1_finished, p2_finished)
+
         if len(legal_moves) == 1:
             return move_piece(bs, player, legal_moves[0], p1_finished, p2_finished)        
 
@@ -75,12 +78,11 @@ def main_phase(bs, player, p1_finished, p2_finished):
         p = copy.deepcopy(player)
 
         piece = calc_main(dummy_bs, player, p1_tmp, p2_tmp)
-        print('piece', piece)
 
         # move = max(potential_moves, key=lambda item:item[1])    
         t2 = datetime.now()
         total = t2 - t1
-        sys.stdout.write('\nSelected to move ' + str(piece) + ', in ' + str(total))
+        sys.stdout.write('\nSelected to move ' + str(piece) + ', in ' + str(total) + '\n\n')
 
         return move_piece(bs, player, piece, p1_finished, p2_finished)
         
@@ -218,16 +220,18 @@ def calc(bs, player, piece, p1, p2):
     tmp_player = (tmp_player + 1) % 2      
 
     legal_moves = list(set(g_player1) - set(p1)) if tmp_player == 0 else list(set(g_player2) - set(p2))
-    value = 0
+    val = 0
+
+    legal_moves.sort()
 
     for i in legal_moves:
         tmp_bs = copy.deepcopy(bs)
         tmp_p1 = list(p1)
         tmp_p2 = list(p2)
         
-        value += calc(tmp_bs, tmp_player, i, tmp_p1, tmp_p2)
+        val += calc(tmp_bs, tmp_player, i, tmp_p1, tmp_p2)
 
-    return value
+    return val
 
 
 grid = refresh(bs)
