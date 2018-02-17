@@ -23,6 +23,12 @@ bs = ([[' ', 'a', 'b', 'c', ' '],
        ['3', ' ', ' ', ' ', ' '],
        [' ', ' ', ' ', ' ', ' ']])
 
+def copy_matrix(mat):
+    out = []
+    for i in mat:
+        out.append(i[:])
+
+    return out
 
 def refresh(bs):
     row0 = ' {0} ┃ {1}   {2}   {3} ┃ {4}\n━━━╋━━━┳━━━┳━━━┫\n'.format(*bs[0])
@@ -38,7 +44,7 @@ def refresh(bs):
 def render(grid, player):
     subprocess.call('clear')
     sys.stdout.write(grid)
-    # sys.stdout.write('Player {0}\'s turn'.format(player + 1))
+    sys.stdout.write('Player {0}\'s turn\n'.format(player + 1))
 
 
 def main(bs, grid, player):
@@ -73,12 +79,12 @@ def main_phase(bs, player, p1_finished, p2_finished):
         t1 = datetime.now()
 
         # copy our data by value so the calculations won't mess up the actual game state
-        dummy_bs = copy.deepcopy(bs)
-        p1_tmp = list(p1_finished)
-        p2_tmp = list(p2_finished)
-        p = copy.deepcopy(player)
+        dummy_bs = copy_matrix(bs)
+        p1_tmp = p1_finished[:]
+        p2_tmp = p2_finished[:]
+        p = player
 
-        piece = calc_main(dummy_bs, player, p1_tmp, p2_tmp)
+        piece = calc_main(dummy_bs, p, p1_tmp, p2_tmp)
 
         # move = max(potential_moves, key=lambda item:item[1])    
         t2 = datetime.now()
@@ -107,16 +113,19 @@ def find_legal_moves(bs, player):
 
     if player == 0:
         for p in range(len(g_player1)):
-            # -3 because we don't need to check the far end
-            for i in range(len(bs)-3):
-                char = g_player1[p]
-                # Pieces can't move if there are two pieces infront
-                if (any(char in j for j in bs[i])):
-                    onestep = bs[i+1][p+1]
-                    twostep = bs[i+2][p+1]
-                    if (onestep in g_player2 and twostep in g_player2):
-                        legal_moves.remove(char)
-        
+
+            char = g_player1[p]
+            column = []
+            for val,i in enumerate(bs):
+                column.append(bs[val][p+1])
+
+            index = column.index(char)
+            if index < 2:
+                onestep = column[index+1]
+                twostep = column[index+2]
+                if (onestep in g_player2 and twostep in g_player2):
+                    legal_moves.remove(char)
+
         # pieces that have finished
         legal_moves = list(set(legal_moves) - set(g_p1_finished))
 
@@ -191,10 +200,10 @@ def calc_main(bs, player, p1, p2):
     potential_moves = []
 
     for i in legal_moves:
-        tmp_bs = copy.deepcopy(bs)
-        tmp_player = copy.deepcopy(player)
-        tmp_p1 = list(p1)
-        tmp_p2 = list(p2)
+        tmp_bs = copy_matrix(bs)
+        tmp_player = player
+        tmp_p1 = p1[:]
+        tmp_p2 = p2[:]
 
         value = calc(tmp_bs, tmp_player, i, tmp_p1, tmp_p2)
 
@@ -216,7 +225,7 @@ def calc(bs, player, piece, p1, p2):
     if len(p2) == 3:
         return -1
 
-    tmp_player = copy.deepcopy(player)
+    tmp_player = player
     tmp_player = (tmp_player + 1) % 2      
 
     legal_moves = list(set(g_player1) - set(p1)) if tmp_player == 0 else list(set(g_player2) - set(p2))
@@ -225,9 +234,9 @@ def calc(bs, player, piece, p1, p2):
     legal_moves.sort()
 
     for i in legal_moves:
-        tmp_bs = copy.deepcopy(bs)
-        tmp_p1 = list(p1)
-        tmp_p2 = list(p2)
+        tmp_bs = copy_matrix(bs)
+        tmp_p1 = p1[:]
+        tmp_p2 = p2[:]
         
         val += calc(tmp_bs, tmp_player, i, tmp_p1, tmp_p2)
 
